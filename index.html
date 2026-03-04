@@ -551,6 +551,9 @@
             addTyping();
 
             try {
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 60000);
+
                 const res = await fetch(WEBHOOK_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -558,13 +561,14 @@
                         action: 'sendMessage',
                         chatInput: text,
                         sessionId: sessionId
-                    })
+                    }),
+                    signal: controller.signal
                 });
+                clearTimeout(timeout);
 
                 const data = await res.json();
                 removeTyping();
 
-                // n8n returns the response in different formats — handle both
                 const answer = data.output || data.text || data.response ||
                     data.message || (Array.isArray(data) && data[0]?.output) ||
                     "I couldn't find that information in the knowledge base.";
@@ -572,7 +576,11 @@
                 addMessage('bot', answer);
             } catch (err) {
                 removeTyping();
-                addMessage('bot', '⚠️ Connection error. Please make sure the RAG workflow is active and try again.');
+                if (err.name === 'AbortError') {
+                    addMessage('bot', '⏱️ Server is waking up — please try again in 30 seconds.');
+                } else {
+                    addMessage('bot', '⚠️ Connection error. Make sure the n8n workflow is active and CORS is enabled (N8N_CORS_ORIGIN=* on Render).');
+                }
                 console.error(err);
             }
 
