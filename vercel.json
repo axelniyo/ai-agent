@@ -1,0 +1,7 @@
+{
+  "name": "embedded-finance-rag-bot",
+  "version": 2,
+  "builds": [
+    { "src": "index.html", "use": "@vercel/static" }
+  ]
+}
